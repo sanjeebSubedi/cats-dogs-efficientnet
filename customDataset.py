@@ -1,7 +1,6 @@
 import os
 from skimage import io 
 from torch.utils.data import Dataset
-import torch
 
 class CatsDogsDataset(Dataset):
   def __init__(self, root_dir, transform=None, is_test_set=False):
