@@ -84,7 +84,7 @@ num_workers = multiprocessing.cpu_count()
 model_name = 'efficientnet-b0'
 training_epochs = 10
 learning_rate = 0.0001
-model_save_path = 'drive/MyDrive/dogs_vs_cats/models/'
+model_save_path = 'drive/MyDrive/dogs_vs_cats/models/cats_dogs_efficientnet.pt'
 batch_size = 100
 
 
@@ -103,30 +103,7 @@ optimizer = adam(model, learning_rate)
 print('Training the model...')
 trained_model = train_model(train_loader, model, optimizer,
                            num_epochs=training_epochs)
-print('Saving the model to disk!')
-trained_model.save(model_save_path+model_name+'cats_dogs')
+print('Saving the model...')
+torch.save(trained_model, model_save_path)
 print('validating the model...')
 validate_model(trained_model, valid_loader)
-
-
-
-# optimizer = adam(model=model, lr=0.0001)
-
-# model = get_model(model_name, num_of_classes=2, input_channels=3, image_size=224)
-
-
-# def create_dataset(train_dir, transformations, is_test_set=False):
-#   return CatsDogsDataset(train_dir, transform = transforms.Compose(transformations), is_test_set=False)
-# cats_dogs_dataset = create_dataset(train_data_dir, transform_list)
-
-# def create_train_valid(dataset, train_set_total, valid_set_total):
-#   train_set, valid_set = torch.utils.data.random_split(dataset, [train_set_total, valid_set_total])
-#   return (train_set, valid_set)
-
-# train_set, valid_set = create_train_valid(cats_dogs_dataset, 20000, 5000)
-
-# def create_dataloader(dataset, batch_size, num_workers, shuffle=True):
-#   loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=shuffle, num_workers=num_workers)
-#   return loader
-
-# train_loader = create_dataloader(train_set, TRAIN_BATCH_SIZE, NUM_WORKERS)
