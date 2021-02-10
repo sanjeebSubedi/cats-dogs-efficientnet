@@ -2,11 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-import torchvision
 import PIL
-import multiprocessing
 import torch.optim as optim
-import numpy as np
 import math
 from efficientnet_pytorch import EfficientNet
 from customDataset import CatsDogsDataset
@@ -21,8 +18,8 @@ def load_data(main_dir, transformations, train_split, batch_size=32,  is_test_se
     dataset = CatsDogsDataset(main_dir, transform = transforms.Compose(transformations), is_test_set=is_test_set)
     train_size = math.ceil(train_split*len(dataset))
     train_set, valid_set = torch.utils.data.random_split(dataset, [train_size, len(dataset)-train_size])
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size, shuffle=True, num_workers=num_workers)
-    valid_loader = torch.utils.data.DataLoader(valid_set, batch_size, shuffle=True, num_workers=num_workers)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size, shuffle=True, num_workers=vars.num_workers)
+    valid_loader = torch.utils.data.DataLoader(valid_set, batch_size, shuffle=True, num_workers=vars.num_workers)
     return train_loader, valid_loader    
 
 def get_model(model_name, num_of_classes, input_channels, image_size):
