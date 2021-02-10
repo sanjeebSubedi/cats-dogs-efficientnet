@@ -1,3 +1,5 @@
+import multiprocessing
+num_workers = multiprocessing.cpu_count()
 main_dir = 'drive/MyDrive/kaggle/dogs_vs_cats/train'
 image_size = 224
 rgb_mean = [0.485, 0.456, 0.406]
