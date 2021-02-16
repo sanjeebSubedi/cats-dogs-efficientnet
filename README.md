@@ -1,10 +1,12 @@
 # cats-dogs-efficientnet
+-------------------------------
 ### Updates on feb 06
 - Custom neural Network class `efficientNetCustom` is now used to load efficientnet model instead of the `load_model` function.
 - Added option to train the last layer only with the `train_only_last_layer` hyperparameter.
 - Training now shows the duration of each epoch in seconds.
 - Loss is now rounded to 5 decimal places like accuracy.
 
+-------------------------------
 
 ### New Features feb 05
 - New hyperparameter named `load_pretrained_weights` to choose whether to load pretrained (Imagenet) CNN or not.
