@@ -28,16 +28,6 @@ def load_data(main_dir, transformations, train_split, batch_size=32,  is_test_se
     train_loader = torch.utils.data.DataLoader(train_set, batch_size, shuffle=True, num_workers=num_workers)
     valid_loader = torch.utils.data.DataLoader(valid_set, batch_size, shuffle=True, num_workers=num_workers)
     return train_loader, valid_loader    
-
-# def get_model(model_name, num_classes, input_channels, image_size):
-#   if load_pretrained_weights:
-#     return EfficientNet.from_pretrained(model_name, input_channels, 
-#                                         num_classes=num_classes,
-#                                         image_size=image_size)
-#   else:
-#     return EfficientNet.from_name(model_name, input_channels,
-#                                   num_classes=num_classes,
-#                                   image_size=image_size)
   
 def adam(model, lr):
   return optim.Adam(model.parameters(), lr=lr)
@@ -45,7 +35,7 @@ def adam(model, lr):
 def get_num_correct(preds, labels):
   return preds.argmax(dim=1).eq(labels).sum().item()
 
-def train_model(train_loader, model, optimizer, num_epochs, valid_loader=None):
+def train_model(train_loader, model, optimizer, loss_func, num_epochs, valid_loader=None):
   model = model.to(device)
   model.train()
   for epoch in range(1, num_epochs+1):
@@ -57,37 +47,39 @@ def train_model(train_loader, model, optimizer, num_epochs, valid_loader=None):
       images = images.to(device)
       labels = labels.to(device)
       preds = model(images)
-      loss = F.cross_entropy(preds, labels)
-
+      loss = loss_func(preds, labels)
       optimizer.zero_grad()
       loss.backward()
       optimizer.step()
 
       loss_after_epoch += loss
       acc_after_epoch += get_num_correct(preds, labels)
-
+    
+    loss_after_epoch /= 100
     print(f'Epoch:{epoch}/{num_epochs}  Acc:{(acc_after_epoch/train_size):.5f}', end = '  ')
-    print(f'Loss:{(loss_after_epoch/100):.5f}  Duration:{(time.time()-start_time):.2f}s', end='\n' if valid_loader is None else '  ')
+    print(f'Loss:{(loss_after_epoch):.5f}  Duration:{(time.time()-start_time):.2f}s', end='\n' if valid_loader is None else '  ')
     if valid_loader is not None:
-      validate_model(model, valid_loader)
+      validate_model(model, valid_loader, loss_func)
     if epoch % vars.checkpoint_save_frequency == 0:
       checkpoint = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(),
                   'epoch': epoch, 'loss': loss.item()}
       save_checkpoint(checkpoint, vars.checkpoint_dir, vars.checkpoint_filename)
 
-    
-def validate_model(model, loader):
+def validate_model(model, loader, loss_func):
   model = model.to(device)
   model.eval()
-  num_correct, val_loss = 0, 0
+  total_val_loss=0
+  num_correct = 0
   with torch.no_grad():
     for images,labels in loader:
       images, labels = images.to(device), labels.to(device)
       preds = model(images)
-      val_loss += F.cross_entropy(preds, labels)
+      total_val_loss += loss_func(preds, labels)
       num_correct += get_num_correct(preds, labels)
-    
-    print(f'Val_acc:{(num_correct/valid_size):.5f}  Val_loss:{(val_loss/100):.5f}')
+
+    total_val_loss = total_val_loss/100
+    print(f'Val_acc:{(num_correct/valid_size):.5f}  Val_loss:{(total_val_loss):.5f}')
+    scheduler.step((total_val_loss))
 
 def save_checkpoint(state, save_path, filename):
   print('Saving checkpoint...')
@@ -103,9 +95,18 @@ def get_checkpoint(checkpoint_path):
   # loss = checkpoint['loss']
   return model, optimizer#, epoch, loss
 
-
-transform_list = [transforms.ToPILImage(), transforms.Resize(vars.image_size),
-                  transforms.ToTensor(), transforms.Normalize(vars.rgb_mean, vars.rgb_std)]
+# def early_stopping(measures, delta, patience):
+#   pass
+#   count=0
+#   for measure in measures:
+#     measure_plus = measure + delta
+#     measure_minus = measure - delta
+#     for x in measures:
+#       if measure_minus<=x<=measure_plus:
+#         count +=1
+    
+transform_list = [transforms.Resize(vars.image_size),transforms.ToTensor(),
+                  transforms.Normalize(vars.rgb_mean, vars.rgb_std)]
 
 print('Setting device...')
 set_device()
@@ -122,8 +123,10 @@ else:
   model = EfficientNetCustom(vars.model_name, in_channels=3, num_classes=num_classes,
                              train_only_last_layer=vars.train_only_last_layer,
                              load_pretrained_weights=vars.load_pretrained_weights)
-  # model = get_model(model_name, num_classes, input_channels=3, image_size=image_size)
   optimizer = adam(model, vars.learning_rate)
 
-trained_model = train_model(train_loader, model, optimizer,
+loss_func = nn.CrossEntropyLoss()
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=3, verbose=2)
+
+trained_model = train_model(train_loader, model, optimizer, loss_func,
                             num_epochs=vars.training_epochs, valid_loader=valid_loader)
